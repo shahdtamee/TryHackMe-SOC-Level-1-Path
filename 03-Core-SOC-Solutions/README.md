@@ -30,8 +30,10 @@ index=VPN_Logs
 | spath
 | search UserName="Maleena"
 | stats count
-
 ```
+![Splunk Investigation](splunk_query.png)
+
+---
 
 ## 2️⃣ Elastic Stack (ELK): Log Investigation
 
@@ -48,6 +50,7 @@ index=VPN_Logs
 - Investigated `Source_ip` activity and connection patterns.
 - Identified failed authentication activity using `action: failed`.
 
+![Elastic Investigation](elastic_filtering.png)
 ---
 
 ## 3️⃣ Endpoint Detection & Response (EDR)
@@ -65,6 +68,8 @@ index=VPN_Logs
 - Analyzed Indicators of Compromise (IoCs) including file paths, processes, registry keys, and domains.
 - Assessed alerts and identified relevant artifacts for further investigation and response.
 
+![EDR Detections](edr_detections.png)
+![EDR Indicators](edr_iocs.png)
 ---
 
 ## 💡 Practical SOC Skills Acquired
