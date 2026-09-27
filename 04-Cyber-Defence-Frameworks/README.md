@@ -14,8 +14,6 @@ This module covers:
 - **MITRE ATT&CK & D3FEND** — Mapping adversary behaviour to defensive techniques.
 - **Hands-on Labs** — Applying threat intelligence, malware analysis, Sigma rules, and defensive controls.
 
-![Module Completion](screenshots/module-completion.png)
-
 ---
 
 ## 1. 🔗 Unified Kill Chain — 18 Attack Phases
@@ -50,8 +48,6 @@ The 18 phases are organised into three main stages:
 
 This framework was used to understand how an attacker can progress from initial reconnaissance and access to lateral movement, data theft, and final objectives.
 
-![Unified Kill Chain](screenshots/unified-kill-chain.png)
-
 ---
 
 ## 2. 🎯 Threat Actor Profiling & MITRE ATT&CK
@@ -75,9 +71,7 @@ Threat intelligence can be mapped to **MITRE ATT&CK** to better understand adver
   - **Sub-techniques** such as `T1598.003`
 - Analysed techniques that can appear across different stages of an attack, such as phishing-related activity.
 
-![Mustang Panda Reconnaissance & Navigator](screenshots/navigator-analysis.png)
-
-![APT28 Full TTP Mapping](screenshots/apt28-navigator-ttps.png)
+![APT28 Full TTP Mapping](apt28-navigator-ttps.png)
 
 ### 🛡️ MITRE D3FEND & Mitigations
 
@@ -86,7 +80,7 @@ Explored the relationship between offensive techniques and defensive countermeas
 * **User Geolocation Logon Pattern Analysis — `D3-UGLPA`**: Used to identify anomalous authentication attempts by inspecting network traffic.
 * **User Account Management — `M1018`**: Mitigating exposure to valid cloud accounts (`T1078.004`) by regularly auditing and removing inactive or unnecessary accounts.
 
-![Cloud Accounts Mitigation](screenshots/mitre-mitigation-cloud.png)
+![Cloud Accounts Mitigation](mitre-mitigation-cloud.png)
 
 ---
 
@@ -103,9 +97,9 @@ Performed practical malware analysis activities using a sandboxed environment:
 - Identified network-related Indicators of Compromise (IOCs) and process behaviors (e.g., attempts to disable security tooling).
 - Applied outbound firewall controls using **Egress / Deny rules** to block active communication channels toward external C2 infrastructure over `443/TCP`.
 
-![Malware Sandbox Analysis](screenshots/sample4-sandbox-analysis.png)
+![Malware Sandbox Analysis](sample4-sandbox-analysis.png)
 
-![Sphinx Detection & Flag Retrieval](screenshots/sphinx-flag-success.png)
+![Sphinx Detection & Flag Retrieval](sphinx-flag-success.png)
 
 ---
 
