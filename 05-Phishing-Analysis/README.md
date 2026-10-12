@@ -6,6 +6,7 @@
 
 ![TryHackMe](https://img.shields.io/badge/TryHackMe-SOC%20Level%201-red)
 ![Focus](https://img.shields.io/badge/Focus-Blue%20Team-blue)
+![Status](https://img.shields.io/badge/Status-Completed%20Labs-brightgreen)
 
 ---
 
@@ -13,49 +14,83 @@
 
 This module documents my hands-on experience investigating phishing emails and malicious artifacts through the **TryHackMe SOC Level 1 Path**.
 
-I practiced inspecting raw email headers, identifying suspicious domains and attachments, analyzing malware reputation and sandbox reports, and investigating SMTP traffic.
+Through guided labs and practical challenges, I worked on:
 
-The main objective was to build a structured phishing investigation workflow based on technical evidence rather than relying on a single security tool.
+- Analyzing raw email headers and MIME structures.
+- Identifying phishing indicators and suspicious sender domains.
+- Investigating file hashes, attachments, and malware reputation.
+- Enriching IP addresses using threat intelligence.
+- Reviewing dynamic malware sandbox reports.
+- Analyzing SMTP traffic using Wireshark.
+- Investigating phishing infrastructure and suspicious archives.
 
-### Completed Rooms
+My main objective was to develop a structured phishing investigation workflow based on **technical evidence and threat intelligence correlation**, rather than relying on a single detection tool.
 
-| Room | Focus |
+### 📚 Completed Rooms
+
+| TryHackMe Room | Main Focus | Status |
+|---|---|---|
+| Phishing Analysis Fundamentals | Email headers, MIME, attachments | ✅ Completed |
+| Phishing Emails in Action | Phishing indicators and sender impersonation | ✅ Completed |
+| Phishing Analysis Tools | Threat intelligence and malware analysis | ✅ Completed |
+| Phishing Prevention | Email authentication and SMTP traffic | ✅ Completed |
+| The Greenholt Phish | Malicious attachment investigation | ✅ Completed |
+| Snapped Phish-ing Line | Phishing infrastructure and kit analysis | ✅ Completed |
+
+### 🛠️ Tools & Technologies
+
+| Tool | Investigation Purpose |
 |---|---|
-| Phishing Analysis Fundamentals | Email headers, MIME, attachments |
-| Phishing Emails in Action | Spoofing, phishing indicators, suspicious links |
-| Phishing Analysis Tools | Threat intelligence and malware analysis |
-| Phishing Prevention | Email authentication and SMTP investigation |
-| The Greenholt Phish | Malicious attachment investigation |
-| Snapped Phish-ing Line | Phishing kit and infrastructure investigation |
+| Mozilla Thunderbird | Email source and header investigation |
+| VirusTotal | File reputation and malware detection |
+| IPinfo | IP ownership and infrastructure enrichment |
+| ANY.RUN | Dynamic malware analysis |
+| Wireshark | Network traffic and SMTP investigation |
+| PhishTool | Phishing email analysis |
+| CyberChef | Data decoding and transformation |
+| urlscan.io | URL and website investigation |
+| Cisco Talos | Threat intelligence and reputation |
+| Linux / sha256sum | File hashing |
+
+Some tools were used directly in the documented exercises, while others were studied as part of phishing investigation workflows.
 
 ---
 
-## 📧 1. Email Fundamentals & Header Investigation
+# 📧 1. Email Fundamentals & Header Analysis
 
-### Email Protocols
+## 1.1 Email Protocols
 
-- **SMTP:** Used to send and relay email messages.
-- **IMAP:** Allows users to access and synchronize emails across devices.
-- **POP3:** Retrieves emails from a mail server.
+Understanding email protocols is essential for analyzing suspicious emails and identifying how they travel through mail infrastructure.
 
-Understanding email delivery helps analysts identify where suspicious messages originated and how they traveled through mail infrastructure.
+| Protocol | Function |
+|---|---|
+| SMTP | Sends and relays email messages |
+| IMAP | Synchronizes messages across devices |
+| POP3 | Retrieves messages from a mail server |
 
-### Important Email Headers
+SMTP commonly uses ports 25, 587, and 465, depending on the purpose and transport security configuration.
 
-| Header | Investigation Purpose |
+## 1.2 Email Header Investigation
+
+Email headers provide information about a message's origin, delivery path, and authentication results.
+
+Important fields include:
+
+| Header | SOC Investigation Purpose |
 |---|---|
 | From | Visible sender identity |
-| Return-Path | Envelope sender address |
-| Reply-To | Destination of replies |
+| Return-Path | Envelope sender information |
+| Reply-To | Destination for replies |
 | Received | Mail delivery hops |
-| Authentication-Results | SPF, DKIM, and DMARC results |
+| Authentication-Results | Email authentication findings |
 | Message-ID | Message identifier |
+| Subject | Email subject |
 
-### Practical Investigation — Suspicious Sender
+### 🔬 Practical Investigation — Suspicious Sender Domain
 
-Using Mozilla Thunderbird, I inspected the raw source of a suspicious email.
+Using Mozilla Thunderbird, I examined the raw source of a suspicious email.
 
-The headers revealed:
+The investigation revealed:
 
 ```text
 Return-Path: <postmaster@etekno.xyz>
@@ -63,19 +98,40 @@ X-Originating-IP: [209.85.167.226]
 Received-SPF: none
 ```
 
-The domain `etekno[.]xyz` was identified as an indicator requiring further investigation.
+The domain identified for further investigation was:
 
-**Analysis:** A mismatch between the visible sender identity and underlying email infrastructure may indicate impersonation. However, SPF `none` alone does not prove that an email is malicious.
+`etekno[.]xyz`
 
-![Email Header Investigation](email-header-spf-investigation.png)
+**Analysis:**
 
-*Figure 1: Investigating the Return-Path, originating IP, and SPF results in Thunderbird.*
+The email used a trusted-service impersonation theme, while the underlying source revealed a different domain.
 
-### MIME and Base64 Attachments
+The SPF result was `none`, meaning an applicable SPF authorization result was not available. This does not independently establish that the message is malicious.
 
-MIME enables email messages to carry different content types and attachments.
+The suspicious domain, sender identity, and message content should be correlated before reaching a verdict.
 
-In a training email, I inspected the source file `email2.txt` and identified:
+![Email Header Investigation](04-email-header-spf-investigation.png.png)
+
+*Figure 1: Inspecting the Return-Path, originating IP, and SPF information using Thunderbird.*
+
+---
+
+## 1.3 MIME & Base64 Attachment Analysis
+
+MIME (Multipurpose Internet Mail Extensions) allows emails to contain HTML content, images, documents, and other attachments.
+
+Important fields include:
+
+- `Content-Type`
+- `Content-Disposition`
+- `Content-Transfer-Encoding`
+- MIME boundaries
+
+### 🔬 Practical Investigation
+
+I inspected an email source file named `email2.txt` in the TryHackMe environment.
+
+The message contained:
 
 ```text
 Content-Type: application/pdf; name="zmqpalgh.pdf"
@@ -83,21 +139,32 @@ Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="zmqpalgh.pdf"
 ```
 
-The message contained a Base64-encoded PDF attachment.
+### Findings
 
-**Key learning:** Base64 is an encoding mechanism, not encryption. Analysts can reconstruct encoded attachments in an isolated investigation environment.
+- Attachment filename: `zmqpalgh.pdf`
+- Declared content type: `application/pdf`
+- Transfer encoding: `base64`
+- Attachment location: MIME message body
 
-![MIME Attachment Investigation](email-mime-attachment.png)
+**Technical explanation:**
 
-*Figure 2: Identifying a Base64-encoded PDF attachment through MIME headers.*
+Base64 converts binary data into a textual representation suitable for transmission.
+
+It is not encryption and does not provide confidentiality.
+
+A SOC analyst can reconstruct the encoded attachment for investigation, preferably inside an isolated analysis environment.
+
+![MIME Attachment Analysis](01-email-mime-attachment.png.png)
+
+*Figure 2: Identifying a Base64-encoded PDF attachment by inspecting MIME fields in the email source.*
 
 ---
 
-## 🛡️ 2. Email Authentication & Phishing Prevention
+# 🛡️ 2. Email Authentication & Phishing Prevention
 
-### SPF — Sender Policy Framework
+## 2.1 SPF — Sender Policy Framework
 
-SPF specifies which sending servers are authorized by a domain.
+SPF allows domain owners to specify authorized email-sending infrastructure through DNS records.
 
 Example:
 
@@ -105,131 +172,240 @@ Example:
 v=spf1 ip4:192.0.2.10 -all
 ```
 
-### DKIM — DomainKeys Identified Mail
+The `-all` mechanism indicates that unauthorized senders should fail SPF verification.
 
-DKIM uses cryptographic signatures to verify selected email content and headers.
+**Limitation:** SPF does not directly authenticate the visible From address.
 
-### DMARC — Domain-Based Message Authentication
+## 2.2 DKIM — DomainKeys Identified Mail
 
-DMARC checks domain alignment using SPF and/or DKIM and specifies handling policies.
+DKIM uses digital signatures to verify selected email headers and message content.
 
-| Policy | Function |
+The receiving mail system retrieves a public key from DNS to verify the signature.
+
+A valid DKIM result helps demonstrate message integrity since signing, but does not guarantee that the message is safe.
+
+## 2.3 DMARC — Domain-Based Message Authentication, Reporting and Conformance
+
+DMARC builds upon SPF and DKIM by checking alignment with the visible From domain.
+
+| DMARC Policy | Meaning |
 |---|---|
-| `p=none` | Monitoring |
-| `p=quarantine` | Request suspicious-message treatment |
+| `p=none` | Monitor authentication results |
+| `p=quarantine` | Request suspicious handling |
 | `p=reject` | Request rejection of failing messages |
 
-**SOC takeaway:** SPF, DKIM, and DMARC provide important authentication evidence, but successful authentication does not guarantee an email is safe.
+### SOC Takeaway
 
-Other preventive controls include secure email gateways, URL filtering, sandboxing, user awareness, and MFA.
+Email authentication is a defensive layer, not a complete phishing prevention solution.
+
+Additional protections include:
+
+- Secure Email Gateways (SEG)
+- URL filtering
+- Attachment sandboxing
+- Malware scanning
+- Multi-Factor Authentication (MFA)
+- Security awareness training
+- SOC monitoring and incident response
 
 ---
 
-## 🔎 3. Threat Intelligence & Malware Analysis
+# 🔎 3. Threat Intelligence & Malware Analysis
 
-### VirusTotal — File Reputation
+## 3.1 VirusTotal — File Reputation Investigation
 
-I used VirusTotal to examine file reputation and security vendor detection results.
+**Tool:** [VirusTotal](https://www.virustotal.com/)
 
-**Example A — Password-Protected PDF**
+VirusTotal aggregates detection and reputation information from multiple security engines and analysis services.
 
-| Finding | Result |
+It can assist with investigating files, hashes, URLs, IP addresses, and domains.
+
+### 🔬 Investigation A — Password-Protected PDF
+
+I examined a PDF using VirusTotal.
+
+| Property | Result |
 |---|---|
-| File type | PDF |
-| Size | 3.30 MB |
-| Detection | 0/66 |
-| Limitation | Password-protected content |
+| File format | PDF |
+| File size | 3.30 MB |
+| Detection ratio | 0/66 |
+| File characteristic | Password-protected |
 
-![VirusTotal Encrypted PDF](virustotal-encrypted-pdf.png)
+The platform displayed a warning that security vendors might not be able to fully inspect the file because it was password-protected.
 
-*Figure 3: VirusTotal displaying zero detections while warning that encrypted content may not have been fully inspected.*
+![VirusTotal Encrypted PDF](02-virustotal-encrypted-pdf.png.png)
 
-**Analyst finding:** A file with zero antivirus detections is not automatically safe, especially when security engines cannot inspect its contents.
+*Figure 3: VirusTotal showing zero detections for a password-protected PDF and warning about possible inspection limitations.*
 
-### IPinfo — Infrastructure Enrichment
+### Analyst Interpretation
 
-I investigated IP address `35.89.44.33` using IPinfo.
+**Zero antivirus detections do not guarantee file safety.**
 
-| Property | Finding |
+Encrypted or password-protected content may prevent security tools from inspecting embedded data.
+
+Before classifying a file as benign, an analyst should consider its origin, attachment context, available metadata, and additional analysis results.
+
+---
+
+## 3.2 IPinfo — Infrastructure Enrichment
+
+**Tool:** [IPinfo](https://ipinfo.io/)
+
+IP enrichment provides context about network ownership and infrastructure.
+
+### 🔬 Practical Investigation
+
+I investigated:
+
+`35.89.44.33`
+
+The displayed results included:
+
+| Property | Result |
 |---|---|
 | Location | Boardman, Oregon, US |
 | ASN | AS16509 — Amazon |
 | Hostname | omta34.uswest2.a.cloudfilter.net |
 | Company | Proofpoint, Inc. |
+| Network range | 35.80.0.0/12 |
 
-The page also displayed an abuse-related warning.
+IPinfo also displayed an abuse-related warning referencing AbuseIPDB.
 
-![IPinfo IP Enrichment](ipinfo-ip-enrichment.png)
+![IPinfo Enrichment](03-ipinfo-ip-enrichment.png.png)
 
-*Figure 4: IP enrichment showing hosting infrastructure and associated provider information.*
+*Figure 4: Investigating IP infrastructure, ASN, hostname, provider information, and abuse context.*
 
-**Analyst finding:** An abuse warning is not proof of malicious activity. The role of an IP address, particularly within email security infrastructure, must be considered before reaching a conclusion.
+### Analyst Interpretation
 
-### ANY.RUN — Dynamic Malware Analysis
+IP ownership alone cannot establish maliciousness.
 
-ANY.RUN provides visibility into file behavior in an isolated sandbox.
+In this example, the hostname and company association provided context consistent with email-security-related infrastructure.
 
-I examined sandbox reports containing:
-
-- Process execution information
-- HTTP and network requests
-- Suspicious activity indicators
-- Malware classifications
-
-![ANY.RUN PDF Analysis](anyrun-pdf-dynamic-analysis.png)
-
-*Figure 5: Inspecting sandbox behavior and network activity associated with a suspicious PDF.*
-
-In another investigation, the sandbox report identified:
-
-| Indicator | Finding |
-|---|---|
-| File format | Microsoft Excel |
-| Classification | Trojan |
-| Associated vulnerability | CVE-2017-11882 |
-| Suspicious IP | 204.11.56.48 |
-| Suspicious domain | findresults.site |
-
-![ANY.RUN Malware Investigation](anyrun-malware-iocs-cve.png)
-
-*Figure 6: Reviewing malware classification, exploit tagging, and indicators from sandbox analysis.*
-
-**Technical learning:** CVE-2017-11882 relates to remote code execution in Microsoft's Equation Editor. Malicious Office documents can exploit vulnerable client software.
-
-The observed sandbox indicators support further investigation and must be correlated with endpoint and network evidence.
+Reputation warnings should be correlated with the system's actual role before interpreting an IP address as malicious.
 
 ---
 
-## 🌐 4. Wireshark — SMTP Traffic Investigation
+## 3.3 ANY.RUN — Dynamic Malware Analysis
 
-I analyzed `traffic.pcap` using Wireshark to understand email communication at the network level.
+**Tool:** [ANY.RUN](https://any.run/)
 
-### SMTP Analysis
+ANY.RUN provides interactive malware analysis in an isolated environment.
 
-The investigation involved:
+Dynamic analysis can reveal behavior that may not be apparent through file metadata or static inspection.
 
-1. Identifying SMTP traffic.
-2. Examining server response codes.
-3. Applying Wireshark display filters.
-4. Inspecting relevant packets.
-5. Reconstructing conversations with Follow TCP Stream.
+### Investigation A — Suspicious PDF
 
-Common SMTP responses include:
+I reviewed a sandbox analysis involving a suspicious PDF identified in the lab as:
 
-| Code | Meaning |
+`Payment-updateid.pdf`
+
+The interface provided visibility into:
+
+- Process execution
+- HTTP requests
+- Network communications
+- Suspicious activity classifications
+- Application behavior
+
+![ANY.RUN PDF Analysis](05-anyrun-pdf-dynamic-analysis.png.png)
+
+*Figure 5: Reviewing suspicious PDF activity, process information, and network requests in ANY.RUN.*
+
+### Investigation Workflow
+
+1. Identify the suspicious attachment.
+2. Obtain its file hash.
+3. Review the relevant sandbox report.
+4. Examine the process tree.
+5. Inspect network and DNS activity.
+6. Identify suspicious behavior.
+7. Extract relevant indicators.
+8. Correlate findings with other investigation evidence.
+
+### Investigation B — Malicious Office Document
+
+In another exercise, I examined a sandbox report associated with a malicious Microsoft Excel document.
+
+The report displayed:
+
+| Indicator | Result |
+|---|---|
+| Document format | Microsoft Excel 2007+ |
+| Classification | Trojan |
+| Vulnerability tag | CVE-2017-11882 |
+| Malicious IP identified in lab | 204.11.56.48 |
+| Malicious domain identified in lab | findresults.site |
+
+### Technical Context — CVE-2017-11882
+
+CVE-2017-11882 is a remote code execution vulnerability involving Microsoft's Equation Editor component.
+
+Crafted Office content may exploit a vulnerable installation.
+
+The presence of the CVE tag in the sandbox report provides useful investigative context, although exploit execution should be confirmed using additional behavioral evidence.
+
+### Indicators of Compromise
+
+```text
+IP: 204.11.56.48
+Domain: findresults[.]site
+CVE: CVE-2017-11882
+```
+
+![ANY.RUN Malware Indicators](06-anyrun-malware-iocs-cve.png.png)
+
+*Figure 6: Reviewing sandbox malware classification, exploit-related tagging, and threat indicators.*
+
+### Key Learning
+
+Dynamic analysis helps connect file execution, suspicious processes, network behavior, and potential exploitation.
+
+These findings can assist SOC analysts with detection, triage, and escalation.
+
+---
+
+# 🌐 4. Wireshark — SMTP Traffic Investigation
+
+**Tool:** [Wireshark](https://www.wireshark.org/)
+
+I investigated email-related network traffic using a provided packet capture:
+
+`traffic.pcap`
+
+The objective was to understand how SMTP communication appears in packet captures and how analysts can investigate delivery events.
+
+## 4.1 SMTP Response Analysis
+
+SMTP servers return status codes that indicate how a request was processed.
+
+| Response Code | Meaning |
 |---|---|
 | 220 | Service ready |
 | 250 | Requested action completed |
 | 354 | Start mail input |
-| 550 | Requested action rejected |
+| 421 | Service unavailable |
+| 450 | Temporary mailbox unavailability |
+| 550 | Request rejected or mailbox unavailable |
 
-![Wireshark SMTP Traffic](wireshark-smtp-traffic.png)
+### Investigation Steps
 
-*Figure 7: Inspecting the packet capture during SMTP response analysis.*
+1. Opened `traffic.pcap` in Wireshark.
+2. Examined available network protocols.
+3. Investigated SMTP traffic.
+4. Reviewed server response codes.
+5. Identified relevant conversations for deeper analysis.
 
-### Follow TCP Stream
+![Wireshark SMTP Analysis](07-wireshark-smtp-traffic.png.png)
 
-Using **Follow TCP Stream**, I examined an SMTP conversation containing:
+*Figure 7: Investigating the supplied network capture and SMTP response-code analysis.*
+
+---
+
+## 4.2 Follow TCP Stream
+
+Wireshark's **Follow TCP Stream** feature reconstructs application data exchanged within a TCP connection.
+
+During the exercise, I examined an SMTP conversation containing:
 
 ```text
 EHLO mozilla.org
@@ -239,161 +415,262 @@ DATA
 Subject: delivery failed
 ```
 
-The exercise included analysis of 512 SMTP packets.
+The conversation also showed SMTP server response codes and message headers.
 
-![Wireshark Follow TCP Stream](wireshark-tcp-stream.png)
+The lab included a confirmed count of **512 SMTP packets**.
 
-*Figure 8: Reconstructing an SMTP conversation and examining email headers and delivery commands.*
+![Wireshark TCP Stream](08-wireshark-tcp-stream.png.png)
 
-**SOC takeaway:** SMTP traffic analysis helps investigators identify communicating systems, delivery status, sender and recipient information, and message content when the traffic is readable.
+*Figure 8: Reconstructing an SMTP conversation and inspecting commands, delivery responses, and email content.*
+
+### SOC Relevance
+
+SMTP traffic analysis helps investigators understand:
+
+- Which systems exchanged email-related traffic
+- Whether messages were accepted or rejected
+- Sender and recipient identities presented during the transaction
+- Email content and headers when visible
+- Suspicious or unexpected delivery behavior
+
+**Limitation:** Encrypted SMTP traffic may prevent an analyst from reading message contents directly from a packet capture.
 
 ---
 
-## 🚨 5. Practical Challenge — The Greenholt Phish
+# 🚨 5. Practical Challenge — The Greenholt Phish
 
-**Objective:** Investigate a suspicious financial-themed email and its attachment.
+**TryHackMe Room:** The Greenholt Phish  
+**Investigation Focus:** Suspicious email attachment
 
-### Investigation Workflow
+## Scenario
 
-1. Opened the message using Thunderbird.
-2. Inspected the raw email source.
-3. Identified the attachment metadata.
-4. Investigated the attachment's file hash and reputation.
-5. Reviewed security vendor detections.
+The challenge involved investigating a suspicious financial-themed email containing an attachment.
 
-### Attachment Analysis
+My objective was to examine the message source, identify the attachment, and evaluate available malware reputation evidence.
 
-The source identified an attachment beginning with:
+## 5.1 Email Source Investigation
+
+Using Mozilla Thunderbird, I reviewed the original message source.
+
+The message contained an attachment with a `.CAB` extension and a filename beginning with:
+
+`SWT_#09674321`
+
+The relevant MIME fields included:
 
 ```text
-SWT_#09674321
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
 ```
 
-The attachment had a `.CAB` extension and was represented using Base64.
+The financial-themed email and unexpected archive attachment warranted further investigation.
 
-![Greenholt Attachment](greenholt-email-attachment.png)
+![Greenholt Email Attachment](10-greenholt-email-attachment.png.png)
 
-*Figure 9: Examining the email source and identifying the suspicious attachment.*
-
-### VirusTotal Findings
-
-| Property | Result |
-|---|---|
-| Size | Approximately 400.26 KB |
-| Detection | 49/64 |
-| Popular threat label | trojan.msil/loki |
-| Additional labels | msil, loki, agensla |
-
-![VirusTotal Malicious Attachment](virustotal-malicious-cab.png)
-
-*Figure 10: VirusTotal showing multiple malicious detections associated with the attachment.*
-
-### Investigation Verdict
-
-**Assessment: Malicious attachment — high confidence based on available reputation evidence.**
-
-The detection results and suspicious attachment context supported a malicious-file classification.
-
-**Recommended SOC response:**
-
-- Quarantine the email.
-- Identify other recipients of the same attachment.
-- Search for related attachment hashes in security logs.
-- Investigate whether the file was opened or executed.
-- Escalate potential endpoint compromise.
-
-These are recommended actions, not claims of remediation performed during the lab.
+*Figure 9: Inspecting the Greenholt email source and identifying the suspicious attachment.*
 
 ---
 
-## 🎯 6. Practical Challenge — Snapped Phish-ing Line
+## 5.2 File Reputation Analysis
 
-**Objective:** Investigate phishing infrastructure and a phishing kit archive.
+I reviewed the attachment's available VirusTotal results.
 
-A phishing kit can contain files used to create fraudulent websites, including login page templates, scripts, and credential collection components.
+| Property | Finding |
+|---|---|
+| File size | Approximately 400.26 KB |
+| Detection ratio | 49/64 |
+| Popular threat label | trojan.msil/loki |
+| Additional family labels | msil, loki, agensla |
+| Displayed archive classification | RAR |
 
-### Investigation Workflow
+![VirusTotal Malicious Attachment](09-virustotal-malicious-cab.png.png)
 
-1. Identified suspicious phishing-related infrastructure.
-2. Accessed the authorized training environment.
-3. Downloaded the relevant archive.
-4. Prepared to calculate its SHA-256 hash.
-5. Investigated the role of file reputation and archive contents.
+*Figure 10: VirusTotal reporting 49 detections out of 64 security vendors for the investigated attachment.*
 
-### Phishing Kit Artifact
+### Analyst Assessment
+
+**Verdict: Malicious attachment — high confidence based on the available reputation evidence.**
+
+Supporting evidence:
+
+- High security-vendor detection ratio
+- Malware-related detection labels
+- Suspicious attachment type
+- Phishing-themed delivery context
+
+The detection labels were reported by VirusTotal vendors. They should not be interpreted as an independently confirmed malware-family identification.
+
+### Recommended SOC Response
+
+- Quarantine the suspicious email.
+- Search for other recipients of the same attachment.
+- Check whether users downloaded or executed the file.
+- Investigate endpoints associated with possible execution.
+- Record relevant hashes and indicators.
+- Escalate confirmed compromise evidence.
+
+These are recommended analyst actions rather than remediation activities performed in the lab.
+
+---
+
+# 🎯 6. Practical Challenge — Snapped Phish-ing Line
+
+**TryHackMe Room:** Snapped Phish-ing Line  
+**Investigation Focus:** Phishing infrastructure and phishing kit analysis
+
+## Scenario
+
+This challenge involved examining suspicious phishing infrastructure and an associated archive.
+
+A phishing kit can contain website templates, scripts, resources, and configuration files used to support fraudulent webpages or credential-harvesting attacks.
+
+## 6.1 Suspicious Infrastructure
+
+During the lab, I encountered phishing-related infrastructure associated with:
+
+`kennaroaads[.]buzz`
+
+The domain is defanged for safer documentation.
+
+## 6.2 Archive Investigation
 
 The investigated archive was named:
 
-```text
-Update365.zip
-```
+`Update365.zip`
 
-Associated domain observed during the exercise:
-
-```text
-kennaroaads[.]buzz
-```
-
-### Hashing Investigation
-
-Command:
+A SHA-256 hash can be calculated using the Linux command:
 
 ```bash
 cd ~/Downloads
 sha256sum Update365.zip
 ```
 
-SHA-256 provides a repeatable file fingerprint that can be used for reputation lookups and incident correlation.
+SHA-256 creates a reproducible cryptographic fingerprint of a file.
 
-![Snapped Phishing Kit](snapped-phishing-kit-hash.png)
+File hashes help analysts search for previously investigated samples and correlate artifacts across cases.
 
-*Figure 11: Preparing the SHA-256 calculation for the phishing kit archive.*
+![Snapped Phishing Kit Hash](11-snapped-phishing-kit-hash.png.png)
 
-**Evidence note:** The saved screenshot shows the command before execution; the resulting hash is not visible.
+*Figure 11: Preparing to calculate the SHA-256 hash of Update365.zip inside the TryHackMe environment.*
 
-### Key Learning
+**Evidence limitation:** The saved screenshot captures the command before execution. The actual resulting hash is not displayed and therefore is not claimed here.
 
-A phishing investigation may involve tracing relationships between emails, domains, websites, downloadable artifacts, and potential credential-harvesting infrastructure.
+### Investigation Methodology
 
-This provides more context than investigating the suspicious email alone.
+1. Identify the suspicious website or domain.
+2. Record the domain in defanged form.
+3. Identify the phishing kit archive.
+4. Calculate the archive hash.
+5. Review available reputation results.
+6. Examine relevant archive metadata.
+7. Record confirmed findings.
+
+### SOC Takeaway
+
+Investigating phishing requires understanding relationships between:
+
+**Email → Suspicious Link → Website → Infrastructure → Phishing Kit → Potential Credential Theft**
+
+The broader investigation can reveal indicators useful for blocking, hunting, and incident response.
 
 ---
 
-## 🧠 7. SOC Investigation Methodology
+# 🧠 7. SOC Phishing Investigation Workflow
 
-The module helped me develop a repeatable phishing triage workflow:
+The module helped me develop a structured approach to phishing triage.
 
-| Stage | Analyst Action |
+| Investigation Stage | Analyst Activities |
 |---|---|
-| 1. Initial Triage | Examine the reported email and preserve evidence |
-| 2. Header Analysis | Review sender identity and authentication |
-| 3. IOC Extraction | Identify URLs, domains, IPs, hashes, and attachments |
-| 4. Enrichment | Investigate reputation and infrastructure |
-| 5. Behavioral Analysis | Review sandbox activity when necessary |
-| 6. Assessment | Correlate evidence and determine a verdict |
-| 7. Reporting | Document findings and recommend appropriate action |
+| Initial Triage | Examine the reported email and preserve available evidence |
+| Header Analysis | Investigate sender identity, Return-Path, and authentication |
+| IOC Extraction | Identify suspicious URLs, domains, IP addresses, and hashes |
+| Threat Intelligence | Perform reputation checks and infrastructure enrichment |
+| Malware Analysis | Review relevant static and sandbox analysis |
+| Evidence Correlation | Compare findings and identify relationships |
+| Classification | Determine whether the activity is benign, suspicious, or malicious |
+| Reporting | Document findings, confidence, and recommended response |
 
-### Skills Developed
+### Main Lessons Learned
 
-- Email header and MIME analysis
-- Phishing indicator identification
-- File hash and reputation investigation
-- IP address enrichment
-- Sandbox report interpretation
-- SMTP traffic and TCP stream analysis
-- IOC extraction and documentation
-- Evidence-based security analysis
+**1. Sender authenticity requires verification.**  
+A familiar display name or company logo does not establish that an email is trustworthy.
+
+**2. Detection results have limitations.**  
+A zero-detection file can still require investigation, especially when content cannot be fully inspected.
+
+**3. Threat intelligence requires context.**  
+An IP reputation warning or malware label should be interpreted alongside other evidence.
+
+**4. Dynamic analysis provides behavioral visibility.**  
+Process execution and network activity can reveal suspicious behavior not visible from metadata alone.
+
+**5. Network investigations support email security analysis.**  
+SMTP traffic and TCP streams can provide useful evidence about message delivery.
+
+**6. Structured reporting improves investigations.**  
+Separating observations, interpretations, and recommended actions helps produce more defensible conclusions.
 
 ---
 
-## 🚀 Future Work
+# 🧩 8. Skills Developed
 
-I plan to document more advanced hands-on SOC investigations separately, including:
+### Email Security
+- Email header analysis
+- MIME and attachment inspection
+- SPF, DKIM, and DMARC
+- Phishing and impersonation indicators
 
-- **Microsoft Sentinel:** Alert-by-alert triage, KQL queries, log analysis, and investigation reporting.
-- **Splunk:** Security log searching, event correlation, and alert investigation.
+### Threat Intelligence
+- VirusTotal file reputation
+- IP address enrichment
+- IOC identification
+- Threat indicator correlation
 
-These future projects will focus on practical SIEM investigations rather than repeating the phishing fundamentals covered here.
+### Malware Investigation
+- Suspicious attachment investigation
+- Sandbox report interpretation
+- Process and network behavior review
+- Exploit-related analysis
+
+### Network Analysis
+- Wireshark packet inspection
+- SMTP response interpretation
+- TCP stream reconstruction
+- Email delivery analysis
+
+### Investigation Practices
+- Evidence-based triage
+- Technical documentation
+- Threat classification
+- Recommended response and escalation
+
+---
+
+# 🚀 9. Future Hands-On Projects
+
+My next objective is to extend these phishing investigation skills into SIEM-based security operations.
+
+### Microsoft Sentinel
+
+I plan to document investigations separately, focusing on:
+
+- Security alert triage
+- KQL log queries
+- Entity investigation
+- Evidence correlation
+- Incident assessment and reporting
+
+### Splunk
+
+I also plan to develop practical security investigations involving:
+
+- SPL queries
+- Security log analysis
+- Event correlation
+- Suspicious activity identification
+- Alert investigation documentation
+
+These projects will be maintained separately from this phishing analysis module.
 
 ---
 
@@ -401,13 +678,14 @@ These future projects will focus on practical SIEM investigations rather than re
 
 - [TryHackMe](https://tryhackme.com/)
 - [VirusTotal](https://www.virustotal.com/)
-- [ANY.RUN](https://any.run/)
 - [IPinfo](https://ipinfo.io/)
+- [ANY.RUN](https://any.run/)
+- [PhishTool](https://www.phishtool.com/)
 - [Wireshark](https://www.wireshark.org/)
 - [MITRE ATT&CK](https://attack.mitre.org/)
 
 ---
 
 **Author:** [Shahd Tamee](https://github.com/shahdtamee)  
-**Learning Path:** TryHackMe SOC Level 1  
+**Path:** TryHackMe SOC Level 1  
 **Focus:** Blue Team | SOC Analysis | Phishing Investigation
